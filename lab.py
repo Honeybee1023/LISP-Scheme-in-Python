@@ -89,7 +89,25 @@ def parse(tokens):
     >>> parse(['(', '(', 'parse', 'these', 'tokens', ')', 'here', ')'])
     [['parse', 'these', 'tokens'], 'here']
     """
-    raise NotImplementedError
+    if not tokens:
+        raise SchemeEvaluationError("Empty Tokens")
+
+    token = tokens.pop(0) #shorten the list of tokens each time
+
+    if token == '(':
+        current_expr = []
+        while tokens[0] != ')':
+            #recursively parse the stuff inside this layer of paren 
+            current_expr.append(parse(tokens)) 
+            #unmatched paren when we reach end without )
+            if not tokens:
+                raise SchemeEvaluationError("Unmatched parenthesis")
+        tokens.pop(0)
+        return current_expr
+    elif token == ')':
+        raise SchemeEvaluationError("Unmatched parenthesis")
+    else:
+        return number_or_symbol(token)
 
 
 # endregion
