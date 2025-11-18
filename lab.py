@@ -125,7 +125,25 @@ def evaluate(tree):
     >>> evaluate(['+', 3, ['-', 3, 1, 1], 2])
     6
     """
-    raise NotImplementedError
+    if not isinstance(tree, list):
+        if isinstance(tree, (int, float)):
+            #if number, just return number
+            return tree
+        else:
+            #if symbol, return object associated with symbol
+            if tree in SCHEME_BUILTINS:
+                return SCHEME_BUILTINS[tree]
+            else:
+                raise SchemeNameError("Symbol not found/undefined")
+    else:
+        oper = evaluate(tree[0])
+        args = [evaluate(arg) for arg in tree[1:]]
+        try:
+            return oper(*args)
+        except TypeError:
+            raise SchemeEvaluationError("Function cannot be completed with given args")
+
+
 
 
 # endregion
