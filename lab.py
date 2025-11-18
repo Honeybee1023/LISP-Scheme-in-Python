@@ -159,6 +159,9 @@ def builtin_mul(*args):
     >>> builtin_mul(1, 2, -3)
     -6
     """
+    if len(args) == 1:
+        return args[0]
+
     if len(args) == 2:
         return args[0] * args[1]
 
@@ -169,6 +172,8 @@ def builtin_mul(*args):
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
     "*": builtin_mul,
+    "-": lambda x, *y: x - sum(y) if y else -x,
+    "/": lambda x, *y: x / builtin_mul(*y) if y else 1 / x,
 }
 
 
