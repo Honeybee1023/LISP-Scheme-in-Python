@@ -115,7 +115,7 @@ def parse(tokens):
 # region                       Evaluation
 ####################################################################
 
-def evaluate(tree):
+def evaluate(tree, frame = None):
     """
     Given tree, a fully parsed expression, evaluates and outputs the result of
     evaluating expression according to the rules of the Scheme language.
@@ -125,6 +125,8 @@ def evaluate(tree):
     >>> evaluate(['+', 3, ['-', 3, 1, 1], 2])
     6
     """
+    if frame is None:
+        frame = make_initial_frame()
     if not isinstance(tree, list):
         if isinstance(tree, (int, float)):
             #if number, just return number
@@ -134,7 +136,10 @@ def evaluate(tree):
             if tree in SCHEME_BUILTINS:
                 return SCHEME_BUILTINS[tree]
             else:
-                raise SchemeNameError("Symbol not found/undefined")
+                try:
+                    return frame.lookup(tree)
+                except SchemeNameError:
+                    raise SchemeNameError("Symbol", tree, "not found/undefined")
     else:
         #evaluate([3.14]) should raise a SchemeEvaluationError because a float is not callable.
         if not isinstance(tree[0], str):
@@ -143,8 +148,18 @@ def evaluate(tree):
         elif tree[0] not in SCHEME_BUILTINS:
             raise SchemeNameError("Symbol not defined")
         
-        oper = evaluate(tree[0])
-        args = [evaluate(arg) for arg in tree[1:]]
+        oper = evaluate(tree[0], frame)
+        if oper == "define":
+            args = tree[1:]
+            if len(args) < 2:
+                raise SchemeEvaluationError("Define needs 2 arguments")
+            var = args[0]
+            val = args[1]
+            if type(var) == list:
+                val = evaluate(val, frame)
+            frame.define(var, val)
+            return val
+        args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
             return oper(*args)
         except TypeError:
@@ -181,6 +196,7 @@ SCHEME_BUILTINS = {
     "*": builtin_mul,
     "-": lambda x, *y: x - sum(y) if y else -x,
     "/": lambda x, *y: x / builtin_mul(*y) if y else 1 / x,
+    "define": "define",  # handled specially in evaluate
 }
 
 
