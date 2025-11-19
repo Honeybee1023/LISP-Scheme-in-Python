@@ -155,7 +155,7 @@ def evaluate(tree, frame = None):
                 raise SchemeEvaluationError("Define needs 2 arguments")
             var = args[0]
             val = args[1]
-            if type(var) == list:
+            if isinstance(val, list):
                 val = evaluate(val, frame)
             frame.define(var, val)
             return val
