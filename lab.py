@@ -186,6 +186,48 @@ SCHEME_BUILTINS = {
 
 # endregion
 ####################################################################
+# region                      Frames
+####################################################################
+class Frame:
+    """
+    A Frame represents a single scope in the Scheme interpreter.
+
+    Frames can have variables defined in them, lookup variables
+    in this frame or parent frames.
+    """
+    def __init__(self, parent_frame=None):
+        self.parent_frame = parent_frame
+        self.mapping = {}
+    
+    def define(self, symbol, value):
+        """
+        Give this symbol a value in the mapping in this frame.
+        """
+        self.mapping[symbol] = value
+
+    def lookup(self, symbol):
+        """
+        Lookup the value of this symbol in this frame,
+        otherwise search through parent frames.
+        """
+        if symbol in self.mapping:
+            return self.mapping[symbol]
+        elif self.parent_frame is not None:
+            return self.parent_frame.lookup(symbol)
+        else:
+            raise SchemeNameError("Symbol undefined")
+        
+def make_initial_frame():
+    """
+    Creates and returns a Frame with the built-in Scheme functions defined.
+    """
+    frame = Frame()
+    parent_frame = Frame()
+    frame.parent_frame = parent_frame
+    for symbol, func in SCHEME_BUILTINS.items():
+        parent_frame.define(symbol, func)
+    return frame
+# endregion
 # region                       REPL
 ####################################################################
 
@@ -200,6 +242,6 @@ if __name__ == "__main__":
 
     if run_repl:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        SchemeREPL(sys.modules[__name__], verbose=True, repl_frame=None).cmdloop()
+        SchemeREPL(sys.modules[__name__], verbose=True, repl_frame=make_initial_frame()).cmdloop()
 
 # endregion
