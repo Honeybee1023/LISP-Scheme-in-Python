@@ -149,13 +149,15 @@ def evaluate(tree, frame = None):
             raise SchemeNameError("Symbol not defined")
         
         oper = evaluate(tree[0], frame)
+        #specially handle the define operation
         if oper == "define":
             args = tree[1:]
             if len(args) < 2:
                 raise SchemeEvaluationError("Define needs 2 arguments")
             var = args[0]
             val = args[1]
-            if isinstance(val, list):
+            #if val is expression or other variable name, need to evaluate first
+            if not isinstance(val, (int, float)):
                 val = evaluate(val, frame)
             frame.define(var, val)
             return val
