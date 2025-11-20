@@ -157,11 +157,19 @@ def evaluate(tree, frame = None):
                 raise SchemeEvaluationError("Define needs 2 arguments")
             var = args[0]
             val = args[1]
-            #if val is expression or other variable name, need to evaluate first
-            if not isinstance(val, (int, float)):
-                val = evaluate(val, frame)
-            frame.define(var, val)
-            return val
+            if isinstance(var, list): #simple function definition
+                func_name = var[0]
+                params = var[1:]
+                body = val
+                function = Function(params, body, frame)
+                frame.define(func_name, function)
+                return function
+            else: #normal function or var definition
+                #if val is expression or other variable name, need to evaluate first
+                if not isinstance(val, (int, float)):
+                    val = evaluate(val, frame)
+                frame.define(var, val)
+                return val
         elif oper == "lambda":
             if len(tree) < 2:
                 raise SchemeEvaluationError("Lambda needs 2 arguments")
