@@ -1,6 +1,5 @@
 """
-6.101 Lab:
-LISP Interpreter Part 1
+LISP Interpreter
 """
 
 #!/usr/bin/env python3
