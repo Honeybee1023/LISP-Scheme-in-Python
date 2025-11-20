@@ -161,6 +161,12 @@ def evaluate(tree, frame = None):
                 val = evaluate(val, frame)
             frame.define(var, val)
             return val
+        elif oper == "lambda":
+            if len(args) < 2:
+                raise SchemeEvaluationError("Lambda needs 2 arguments")
+            params = tree[1]
+            body = tree[2]
+            return Function(params, body, frame)
         args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
             return oper(*args)
@@ -199,6 +205,7 @@ SCHEME_BUILTINS = {
     "-": lambda x, *y: x - sum(y) if y else -x,
     "/": lambda x, *y: x / builtin_mul(*y) if y else 1 / x,
     "define": "define",  # handled specially in evaluate
+    "lambda": "lambda",  # handled specially in evaluate
 }
 
 
@@ -262,7 +269,7 @@ class Function:
             raise SchemeEvaluationError("Incorrect number of arguments")
 
         #in frame of this fuction, set params to user input
-        new_frame = Frame(self.defining_frame)
+        new_frame = Frame(self.defining_frame) #lexical scoping
         for param, arg in zip(self.parameters, args):
             new_frame.define(param, arg)
 
