@@ -246,6 +246,28 @@ def make_initial_frame():
         parent_frame.define(symbol, func)
     return frame
 # endregion
+# region                  User Functions
+####################################################################
+class Function:
+    """
+    A user-defined Scheme function.
+    """
+    def __init__(self, parameters, body, defining_frame):
+        self.parameters = parameters
+        self.body = body
+        self.defining_frame = defining_frame
+
+    def __call__(self, *args):
+        if len(args) != len(self.parameters):
+            raise SchemeEvaluationError("Incorrect number of arguments")
+
+        #in frame of this fuction, set params to user input
+        new_frame = Frame(self.defining_frame)
+        for param, arg in zip(self.parameters, args):
+            new_frame.define(param, arg)
+
+        return evaluate(self.body, new_frame)
+# endregion
 # region                       REPL
 ####################################################################
 
