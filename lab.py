@@ -135,8 +135,6 @@ def evaluate(tree, frame = None):
             #if symbol, return object associated with symbol
             if frame.is_defined(tree):
                 return frame.lookup(tree)
-            elif tree in SCHEME_BUILTINS:
-                return SCHEME_BUILTINS[tree]
             else:
                 raise SchemeNameError("Symbol", tree, "not found/undefined")
     else:
