@@ -133,13 +133,12 @@ def evaluate(tree, frame = None):
             return tree
         else:
             #if symbol, return object associated with symbol
-            if tree in SCHEME_BUILTINS:
+            if frame.is_defined(tree):
+                return frame.lookup(tree)
+            elif tree in SCHEME_BUILTINS:
                 return SCHEME_BUILTINS[tree]
             else:
-                try:
-                    return frame.lookup(tree)
-                except SchemeNameError:
-                    raise SchemeNameError("Symbol", tree, "not found/undefined")
+                raise SchemeNameError("Symbol", tree, "not found/undefined")
     else:
         #evaluate([3.14]) should raise a SchemeEvaluationError because a float is not callable.
         if not isinstance(tree[0], str):
@@ -148,7 +147,6 @@ def evaluate(tree, frame = None):
         #evaluate(['a', 1, 2]), should raise a SchemeNameError
         elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
-        
         oper = evaluate(tree[0], frame)
         #specially handle the define operation
         if oper == "define":
@@ -260,6 +258,9 @@ class Frame:
             return True
         except SchemeNameError:
             return False
+        
+    def __str__(self):
+        return f"Frame({self.mapping})"
         
 def make_initial_frame():
     """
