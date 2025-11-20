@@ -145,7 +145,7 @@ def evaluate(tree, frame = None):
         if not isinstance(tree[0], str):
             raise SchemeEvaluationError("Operation not callable")
         #evaluate(['a', 1, 2]), should raise a SchemeNameError
-        elif tree[0] not in SCHEME_BUILTINS:
+        elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
         
         oper = evaluate(tree[0], frame)
@@ -162,7 +162,7 @@ def evaluate(tree, frame = None):
             frame.define(var, val)
             return val
         elif oper == "lambda":
-            if len(args) < 2:
+            if len(tree) < 2:
                 raise SchemeEvaluationError("Lambda needs 2 arguments")
             params = tree[1]
             body = tree[2]
@@ -242,6 +242,16 @@ class Frame:
         else:
             raise SchemeNameError("Symbol undefined")
         
+    def is_defined(self, symbol):
+        """
+        Returns True if this symbol is defined in this frame or any parent frame.
+        """
+        try:
+            self.lookup(symbol)
+            return True
+        except SchemeNameError:
+            return False
+        
 def make_initial_frame():
     """
     Creates and returns a Frame with the built-in Scheme functions defined.
@@ -280,7 +290,7 @@ class Function:
 
 if __name__ == "__main__":
     run_doctest = True
-    run_repl = False
+    run_repl = True
 
     if run_doctest:
         _doctest_flags = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
