@@ -143,7 +143,8 @@ def evaluate(tree, frame = None):
     else:
         #evaluate([3.14]) should raise a SchemeEvaluationError because a float is not callable.
         if not isinstance(tree[0], str):
-            raise SchemeEvaluationError("Operation not callable")
+            if not isinstance(tree[0], list):
+                raise SchemeEvaluationError("Operation not callable")
         #evaluate(['a', 1, 2]), should raise a SchemeNameError
         elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
