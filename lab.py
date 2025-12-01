@@ -14,7 +14,7 @@ from scheme_utils import (
     number_or_symbol,
     SchemeEvaluationError,
     SchemeNameError,
-    # SchemeSyntaxError, # uncomment in LISP part 2!
+    SchemeSyntaxError, 
     SchemeREPL,
 )
 
@@ -92,27 +92,38 @@ def parse(tokens):
     -867.5309
     >>> parse(['(', '(', 'parse', 'these', 'tokens', ')', 'here', ')'])
     [['parse', 'these', 'tokens'], 'here']
+    >>> parse(['(', 'adam', 'adam', 'chris', 'duane', ')', ')'])
+    SchemeSyntaxError
     """
-    if not tokens:
-        raise SchemeEvaluationError("Empty Tokens")
+    def parse_main_paren(tokens):
+        if not tokens:
+            raise SchemeEvaluationError("Empty Tokens")
 
-    token = tokens.pop(0)  # shorten the list of tokens each time
+        token = tokens.pop(0)  # shorten the list of tokens each time
 
-    if token == "(":
-        current_expr = []
-        while tokens[0] != ")":
-            # recursively parse the stuff inside this layer of paren
-            current_expr.append(parse(tokens))
-            # unmatched paren when we reach end without )
+        if token == "(":
+            current_expr = []
             if not tokens:
-                raise SchemeEvaluationError("Unmatched parenthesis")
-        tokens.pop(0)
-        return current_expr
-    elif token == ")":
-        raise SchemeEvaluationError("Unmatched parenthesis")
-    else:
-        return number_or_symbol(token)
+                raise SchemeSyntaxError("Unclosed parenthesis")
+            while tokens[0] != ")":
+                # recursively parse the stuff inside this layer of paren
+                current_expr.append(parse_main_paren(tokens))
+                # unmatched paren when we reach end without )
+                if not tokens:
+                    raise SchemeSyntaxError("Unmatched parenthesis")
+            tokens.pop(0)
+            return current_expr
+        elif token == ")":
+            raise SchemeSyntaxError("Unmatched parenthesis")
+        else:
+            return number_or_symbol(token)
 
+    result = parse_main_paren(tokens)
+
+    if tokens:
+        raise SchemeSyntaxError("Unmatched parenthesis")
+    
+    return result
 
 # endregion
 ####################################################################
@@ -322,4 +333,5 @@ if __name__ == "__main__":
             sys.modules[__name__], verbose=True, repl_frame=make_initial_frame()
         ).cmdloop()
 
+    print(tokenize("(adam adam chris duane))"))
 # endregion
