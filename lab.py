@@ -113,8 +113,6 @@ def parse(tokens):
                 if not tokens:
                     raise SchemeSyntaxError("Unmatched parenthesis")
             tokens.pop(0)
-            if len(current_expr) == 0:
-                return EMPTY_LIST   # Special case for empty list
             return current_expr
         elif token == ")":
             raise SchemeSyntaxError("Unmatched parenthesis")
@@ -308,7 +306,6 @@ def builtin_cons(*args):
         raise SchemeEvaluationError("cons needs exactly 2 arguments")
     return Pair(args[0], args[1])
 
-
 def builtin_car(*args):
     if len(args) != 1:
         raise SchemeEvaluationError("car needs exactly 1 argument")
@@ -317,7 +314,6 @@ def builtin_car(*args):
         raise SchemeEvaluationError("car expects a Pair")
     return cell.car
 
-
 def builtin_cdr(*args):
     if len(args) != 1:
         raise SchemeEvaluationError("cdr needs exactly 1 argument")
@@ -325,6 +321,76 @@ def builtin_cdr(*args):
     if not isinstance(cell, Pair):
         raise SchemeEvaluationError("cdr expects a Pair")
     return cell.cdr
+
+#builtins for list structures
+def builtin_list(*args):
+    result = EMPTY_LIST
+    for elem in reversed(args):
+        result = Pair(elem, result)
+    return result
+
+def builtin_listp(obj):
+    # Proper list: Either EMPTY_LIST or a chain of Pair ending in EMPTY_LIST
+    while isinstance(obj, Pair):
+        obj = obj.cdr
+    return obj is EMPTY_LIST
+
+def builtin_length(obj):
+    if not builtin_listp(obj):
+        raise SchemeEvaluationError("length expects a list")
+    n = 0
+    while isinstance(obj, Pair):
+        n += 1
+        obj = obj.cdr
+    return n
+
+def builtin_list_ref(lst, idx):
+    if not isinstance(idx, int) or idx < 0:
+        raise SchemeEvaluationError("list-ref index must be nonnegative")
+    cell = lst
+    while idx > 0:
+        if not isinstance(cell, Pair):
+            raise SchemeEvaluationError("index too large")
+        cell = cell.cdr
+        idx -= 1
+    if not isinstance(cell, Pair):
+        raise SchemeEvaluationError("index too large")
+    return cell.car
+
+def builtin_append(*lists):
+    # append with zero args → ()
+    if len(lists) == 0:
+        return EMPTY_LIST
+
+    # Validate all args are proper lists
+    for lst in lists:
+        if not builtin_listp(lst):
+            raise SchemeEvaluationError("append expects lists")
+
+    # If exactly one list: return a *copy* of it
+    if len(lists) == 1:
+        lst = lists[0]
+        result = EMPTY_LIST
+        items = []
+        while isinstance(lst, Pair):
+            items.append(lst.car)
+            lst = lst.cdr
+        for x in reversed(items):
+            result = Pair(x, result)
+        return result
+
+    # General append: copy all items except the last list
+    result = EMPTY_LIST
+    items = []
+    for lst in lists[:-1]:
+        while isinstance(lst, Pair):
+            items.append(lst.car)
+            lst = lst.cdr
+    # Now append items from last list directly
+    last = lists[-1]
+    for x in reversed(items):
+        last = Pair(x, last)
+    return last
 
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
@@ -347,6 +413,11 @@ SCHEME_BUILTINS = {
     "cons": builtin_cons,
     "car": builtin_car,
     "cdr": builtin_cdr,
+    "list": builtin_list,
+    "list?": lambda x: builtin_listp(x),
+    "length": builtin_length,
+    "list-ref": builtin_list_ref,
+    "append": builtin_append,
 }
 
 
@@ -447,8 +518,18 @@ class Pair:
         self.car = car
         self.cdr = cdr
 
+    def pair_to_string(cell):
+        out = []
+        while isinstance(cell, Pair):
+            out.append(str(cell.car))
+            cell = cell.cdr
+        if cell is EMPTY_LIST:
+            return "(" + " ".join(out) + ")"
+        else:
+            return "(" + " ".join(out) + " . " + str(cell) + ")"
+
     def __str__(self):
-        return f"(pair {self.car} {self.cdr})"
+        return self.pair_to_string(self)
 
     def __repr__(self):
         return self.__str__()
