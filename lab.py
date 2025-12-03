@@ -450,6 +450,14 @@ class Pair:
 
     def __repr__(self):
         return self.__str__()
+    
+class EmptyList:
+    def __str__(self):
+        return "()"
+    def __repr__(self):
+        return self.__str__()
+    
+EMPTY_LIST = EmptyList()
 # endregion
 # region                       REPL
 ####################################################################
