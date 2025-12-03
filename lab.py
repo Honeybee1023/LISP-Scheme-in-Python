@@ -300,6 +300,30 @@ def builtin_not(*args):
         raise SchemeEvaluationError("not takes exactly one argument")
     return True if args[0] is False else False
 
+#builtins for pair structures
+def builtin_cons(*args):
+    if len(args) != 2:
+        raise SchemeEvaluationError("cons needs exactly 2 arguments")
+    return Pair(args[0], args[1])
+
+
+def builtin_car(*args):
+    if len(args) != 1:
+        raise SchemeEvaluationError("car needs exactly 1 argument")
+    cell = args[0]
+    if not isinstance(cell, Pair):
+        raise SchemeEvaluationError("car expects a Pair")
+    return cell.car
+
+
+def builtin_cdr(*args):
+    if len(args) != 1:
+        raise SchemeEvaluationError("cdr needs exactly 1 argument")
+    cell = args[0]
+    if not isinstance(cell, Pair):
+        raise SchemeEvaluationError("cdr expects a Pair")
+    return cell.cdr
+
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
     "*": builtin_mul,
@@ -406,6 +430,23 @@ class Function:
         return evaluate(self.body, new_frame)
 
 
+# endregion
+# region               Other Data Structures
+####################################################################
+class Pair:
+    """
+    A cons cell with two fields: car and cdr.
+    """
+
+    def __init__(self, car, cdr):
+        self.car = car
+        self.cdr = cdr
+
+    def __str__(self):
+        return f"(pair {self.car} {self.cdr})"
+
+    def __repr__(self):
+        return self.__str__()
 # endregion
 # region                       REPL
 ####################################################################
