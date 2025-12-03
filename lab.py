@@ -158,6 +158,10 @@ def evaluate(tree, frame=None):
                 raise SchemeNameError("Symbol", tree, "not found/undefined")
             
     else:
+        #handle special case of empty list
+        if tree == []:
+            return EMPTY_LIST
+        
         # evaluate([3.14]) should raise a SchemeEvaluationError, float not callable.
         if not isinstance(tree[0], str):
             if not isinstance(tree[0], list):
