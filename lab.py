@@ -113,6 +113,8 @@ def parse(tokens):
                 if not tokens:
                     raise SchemeSyntaxError("Unmatched parenthesis")
             tokens.pop(0)
+            if len(current_expr) == 0:
+                return EMPTY_LIST   # Special case for empty list
             return current_expr
         elif token == ")":
             raise SchemeSyntaxError("Unmatched parenthesis")
