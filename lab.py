@@ -14,7 +14,7 @@ from scheme_utils import (
     number_or_symbol,
     SchemeEvaluationError,
     SchemeNameError,
-    SchemeSyntaxError, 
+    SchemeSyntaxError,
     SchemeREPL,
 )
 
@@ -54,7 +54,7 @@ def tokenize(source):
             comment = True
             continue
         # each token ends with a space of some sort or paren
-        elif ch in  (" ", "\n", "\t"):
+        elif ch in (" ", "\n", "\t"):
             if current_token != "":
                 tokens.append(current_token)
                 current_token = ""
@@ -95,6 +95,7 @@ def parse(tokens):
     >>> parse(['(', 'adam', 'adam', 'chris', 'duane', ')', ')'])
     SchemeSyntaxError
     """
+
     def parse_main_paren(tokens):
         if not tokens:
             raise SchemeEvaluationError("Empty Tokens")
@@ -122,8 +123,9 @@ def parse(tokens):
 
     if tokens:
         raise SchemeSyntaxError("Unmatched parenthesis")
-    
+
     return result
+
 
 # endregion
 ####################################################################
@@ -143,8 +145,9 @@ def evaluate(tree, frame=None):
     """
     if frame is None:
         frame = make_initial_frame()
+
     if not isinstance(tree, list):
-        if isinstance(tree, (int, float)):
+        if isinstance(tree, (int, float, bool)):
             # if number, just return number
             return tree
         else:
@@ -153,17 +156,49 @@ def evaluate(tree, frame=None):
                 return frame.lookup(tree)
             else:
                 raise SchemeNameError("Symbol", tree, "not found/undefined")
+            
     else:
         # evaluate([3.14]) should raise a SchemeEvaluationError, float not callable.
         if not isinstance(tree[0], str):
             if not isinstance(tree[0], list):
                 raise SchemeEvaluationError("Operation not callable")
+            
         # evaluate(['a', 1, 2]), should raise a SchemeNameError
         elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
         oper = evaluate(tree[0], frame)
+
+        # specially handle conditionals
+        if oper=="if":
+            if len(tree) != 4:
+                raise SchemeEvaluationError("If needs 3 args")
+            pred_statement = tree[1]
+            true_code = tree[2]
+            false_code = tree[3]
+            pred_val = evaluate(pred_statement, frame)
+
+            if pred_val is False:
+                return evaluate(false_code, frame)
+            else:
+                return evaluate(true_code, frame)
+            
+        elif oper == "and":
+            # evaluate args left-to-right; return False if any arg is False, otherwise return True
+            for expr in tree[1:]:
+                val = evaluate(expr, frame)
+                if val is False:
+                    return False
+            return True
+        
+        elif oper == "or":
+            for expr in tree[1:]:
+                val = evaluate(expr, frame)
+                if val is True:
+                    return True
+            return False
+
         # specially handle the define operation
-        if oper == "define":
+        elif oper == "define":
             args = tree[1:]
             if len(args) < 2:
                 raise SchemeEvaluationError("Define needs 2 arguments")
@@ -182,12 +217,14 @@ def evaluate(tree, frame=None):
                     val = evaluate(val, frame)
                 frame.define(var, val)
                 return val
+            
         elif oper == "lambda":
             if len(tree) < 2:
                 raise SchemeEvaluationError("Lambda needs 2 arguments")
             params = tree[1]
             body = tree[2]
             return Function(params, body, frame)
+        
         args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
             return oper(*args)
@@ -218,6 +255,50 @@ def builtin_mul(*args):
     first_num, *rest_nums = args
     return first_num * builtin_mul(*rest_nums)
 
+def compare_helper(args, relation):
+    # relation is some function that takes two args and returns True/False
+    # expects len(args) >= 2
+    for a, b in zip(args, args[1:]):
+        if not relation(a, b):
+            return False
+    return True
+
+def check_arg_length(name, args, n):
+    if len(args) < n:
+        raise SchemeEvaluationError(f"{name} needs at least {n} arguments")
+
+#builtin =, >, >=, <, <= operations
+def builtin_equal(*args):
+    check_arg_length("equal?", args, 2)
+    first = args[0]
+    for a in args[1:]:
+        if a != first:
+            return False
+    return True
+
+def builtin_gt(*args):
+    check_arg_length(">", args, 2)
+    return compare_helper(args, lambda a, b: a > b)
+
+def builtin_ge(*args):
+    check_arg_length(">=", args, 2)
+    return compare_helper(args, lambda a, b: a >= b)
+
+
+def builtin_lt(*args):
+    check_arg_length("<", args, 2)
+    return compare_helper(args, lambda a, b: a < b)
+
+
+def builtin_le(*args):
+    check_arg_length("<=", args, 2)
+    return compare_helper(args, lambda a, b: a <= b)
+
+#make the not operator a builtin function
+def builtin_not(*args):
+    if len(args) != 1:
+        raise SchemeEvaluationError("not takes exactly one argument")
+    return True if args[0] is False else False
 
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
@@ -228,6 +309,15 @@ SCHEME_BUILTINS = {
     "lambda": "lambda",  # handled specially in evaluate
     "#t": True,
     "#f": False,
+    "if": "if",          # special form
+    "and": "and",        # special form
+    "or": "or",          # special form
+    "not": builtin_not,  # builtin function (can be overridden by define)
+    "equal?": builtin_equal,
+    ">": builtin_gt,
+    ">=": builtin_ge,
+    "<": builtin_lt,
+    "<=": builtin_le,
 }
 
 
