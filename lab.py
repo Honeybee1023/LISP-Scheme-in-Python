@@ -342,6 +342,9 @@ SCHEME_BUILTINS = {
     ">=": builtin_ge,
     "<": builtin_lt,
     "<=": builtin_le,
+    "cons": builtin_cons,
+    "car": builtin_car,
+    "cdr": builtin_cdr,
 }
 
 
