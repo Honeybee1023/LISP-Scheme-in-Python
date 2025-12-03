@@ -226,6 +226,8 @@ SCHEME_BUILTINS = {
     "/": lambda x, *y: x / builtin_mul(*y) if y else 1 / x,
     "define": "define",  # handled specially in evaluate
     "lambda": "lambda",  # handled specially in evaluate
+    "#t": True,
+    "#f": False,
 }
 
 
