@@ -241,6 +241,73 @@ def evaluate(tree, frame=None):
                 result = evaluate(expr, frame)
             return result
         
+        elif oper == "del":
+            if len(tree) != 2:
+                raise SchemeEvaluationError("del takes exactly one argument")
+            var = tree[1]
+            if not isinstance(var, str):
+                raise SchemeEvaluationError("variable name must be string")
+            if var not in frame.mapping:
+                raise SchemeNameError(f"{var} not found in current frame")
+
+            value = frame.mapping[var]
+            del frame.mapping[var]
+            return value
+        
+        elif oper == "let":
+            if len(tree) != 3:
+                raise SchemeEvaluationError("let expects 2 parts: bindings and body")
+
+            bindings = tree[1]
+            body = tree[2]
+
+            if not isinstance(bindings, list):
+                raise SchemeEvaluationError("let bindings should be a list")
+
+            # evaluate values
+            evaluated_bindings = []
+            for pair in bindings:
+                if not (isinstance(pair, list) and len(pair) == 2 and isinstance(pair[0], str)):
+                    raise SchemeEvaluationError("invalid let binding")
+                
+                name, val_expr = pair
+                val = evaluate(val_expr, frame)
+                evaluated_bindings.append((name, val))
+
+            # create new local frame
+            new_frame = Frame(parent=frame)
+
+            # bind evaluated values
+            for name, val in evaluated_bindings:
+                new_frame.define(name, val)
+
+            # evaluate body
+            return evaluate(body, new_frame)
+        
+        elif oper == "set!":
+            if len(tree) != 3:
+                raise SchemeEvaluationError("set! takes exactly 2 arguments")
+
+            var = tree[1]
+            expr = tree[2]
+
+            if not isinstance(var, str):
+                raise SchemeEvaluationError("invalid variable name in set!")
+
+            # Evaluate RHS
+            value = evaluate(expr, frame)
+
+            # Walk upward to find existing binding
+            current = frame
+            while current is not None:
+                if var in current.mapping:
+                    current.mapping[var] = value
+                    return value
+                current = current.parent_frame
+
+            # If no binding exists
+            raise SchemeNameError(f"{var} not defined")
+        
         args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
             return oper(*args)
@@ -453,6 +520,9 @@ SCHEME_BUILTINS = {
     "append": builtin_append,
     "begin": "begin",
     "null?": is_null,
+    "del": "del",
+    "let": "let",
+    "set!": "set!",
 }
 
 
