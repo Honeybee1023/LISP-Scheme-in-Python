@@ -156,25 +156,25 @@ def evaluate(tree, frame=None):
                 return frame.lookup(tree)
             else:
                 raise SchemeNameError("Symbol", tree, "not found/undefined")
-            
+
     else:
-        #handle special case of empty list
+        # handle special case of empty list
         if tree == []:
             return EMPTY_LIST
-        
+
         # evaluate([3.14]) should raise a SchemeEvaluationError, float not callable.
         if not isinstance(tree[0], str):
             if not isinstance(tree[0], list):
                 raise SchemeEvaluationError("Operation not callable")
-            
+
         # evaluate(['a', 1, 2]), should raise a SchemeNameError
         elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
-        
+
         oper = evaluate(tree[0], frame)
 
         # specially handle conditionals
-        if oper=="if":
+        if oper == "if":
             if len(tree) != 4:
                 raise SchemeEvaluationError("If needs 3 args")
             pred_statement = tree[1]
@@ -186,7 +186,7 @@ def evaluate(tree, frame=None):
                 return evaluate(false_code, frame)
             else:
                 return evaluate(true_code, frame)
-            
+
         elif oper == "and":
             # evaluate args left-to-right; return False if any arg is False, otherwise return True
             for expr in tree[1:]:
@@ -194,7 +194,7 @@ def evaluate(tree, frame=None):
                 if val is False:
                     return False
             return True
-        
+
         elif oper == "or":
             for expr in tree[1:]:
                 val = evaluate(expr, frame)
@@ -222,14 +222,14 @@ def evaluate(tree, frame=None):
                     val = evaluate(val, frame)
                 frame.define(var, val)
                 return val
-            
+
         elif oper == "lambda":
             if len(tree) < 2:
                 raise SchemeEvaluationError("Lambda needs 2 arguments")
             params = tree[1]
             body = tree[2]
             return Function(params, body, frame)
-        
+
         elif oper == "begin":
             args = tree[1:]
 
@@ -240,7 +240,7 @@ def evaluate(tree, frame=None):
             for expr in args:
                 result = evaluate(expr, frame)
             return result
-        
+
         elif oper == "del":
             if len(tree) != 2:
                 raise SchemeEvaluationError("del takes exactly one argument")
@@ -253,7 +253,7 @@ def evaluate(tree, frame=None):
             value = frame.mapping[var]
             del frame.mapping[var]
             return value
-        
+
         elif oper == "let":
             if len(tree) != 3:
                 raise SchemeEvaluationError("let expects 2 parts: bindings and body")
@@ -267,9 +267,13 @@ def evaluate(tree, frame=None):
             # evaluate values
             evaluated_bindings = []
             for pair in bindings:
-                if not (isinstance(pair, list) and len(pair) == 2 and isinstance(pair[0], str)):
+                if not (
+                    isinstance(pair, list)
+                    and len(pair) == 2
+                    and isinstance(pair[0], str)
+                ):
                     raise SchemeEvaluationError("invalid let binding")
-                
+
                 name, val_expr = pair
                 val = evaluate(val_expr, frame)
                 evaluated_bindings.append((name, val))
@@ -283,7 +287,7 @@ def evaluate(tree, frame=None):
 
             # evaluate body
             return evaluate(body, new_frame)
-        
+
         elif oper == "set!":
             if len(tree) != 3:
                 raise SchemeEvaluationError("set! takes exactly 2 arguments")
@@ -307,12 +311,13 @@ def evaluate(tree, frame=None):
 
             # If no binding exists
             raise SchemeNameError(f"{var} not defined")
-        
+
         args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
             return oper(*args)
         except TypeError:
             raise SchemeEvaluationError("Function cannot be completed with given args")
+
 
 def evaluate_file(filename, frame=None):
     """
@@ -326,8 +331,37 @@ def evaluate_file(filename, frame=None):
         contents = f.read()
 
     tokens = tokenize(contents)
-    parsed = parse(tokens)
-    return evaluate(parsed, frame)
+
+    # local helper that parses a single expression from the tokens list
+    def parse_one(tokens_list):
+        # replicate the inner parse_main_paren logic but consume only one expr
+        if not tokens_list:
+            raise SchemeEvaluationError("Empty Tokens")
+        token = tokens_list.pop(0)
+        if token == "(":
+            current_expr = []
+            if not tokens_list:
+                raise SchemeSyntaxError("Unclosed parenthesis")
+            while tokens_list[0] != ")":
+                current_expr.append(parse_one(tokens_list))
+                if not tokens_list:
+                    raise SchemeSyntaxError("Unmatched parenthesis")
+            tokens_list.pop(0)  # remove ')'
+            return current_expr
+        elif token == ")":
+            raise SchemeSyntaxError("Unmatched parenthesis")
+        else:
+            return number_or_symbol(token)
+
+    result = None
+    
+    # Keep parsing/evaluating until there are no tokens left
+    while tokens:
+        expr = parse_one(tokens)
+        result = evaluate(expr, frame)
+
+    return result
+
 
 # endregion
 ####################################################################
@@ -352,8 +386,10 @@ def builtin_mul(*args):
     first_num, *rest_nums = args
     return first_num * builtin_mul(*rest_nums)
 
+
 def is_null(x):
     return x == EMPTY_LIST
+
 
 def compare_helper(args, relation):
     # relation is some function that takes two args and returns True/False
@@ -363,22 +399,26 @@ def compare_helper(args, relation):
             return False
     return True
 
+
 def check_arg_length(name, args, n):
     if len(args) < n:
         raise SchemeEvaluationError(f"{name} needs at least {n} arguments")
 
-#builtin =, >, >=, <, <= operations
+
+# builtin =, >, >=, <, <= operations
 def builtin_equal(*args):
     check_arg_length("equal?", args, 2)
     first = args[0]
-    for a in args[1:]:
-        if a != first:
+    for elem in args[1:]:
+        if elem != first:
             return False
     return True
+
 
 def builtin_gt(*args):
     check_arg_length(">", args, 2)
     return compare_helper(args, lambda a, b: a > b)
+
 
 def builtin_ge(*args):
     check_arg_length(">=", args, 2)
@@ -394,17 +434,20 @@ def builtin_le(*args):
     check_arg_length("<=", args, 2)
     return compare_helper(args, lambda a, b: a <= b)
 
-#make the not operator a builtin function
+
+# make the not operator a builtin function
 def builtin_not(*args):
     if len(args) != 1:
         raise SchemeEvaluationError("not takes exactly one argument")
     return True if args[0] is False else False
 
-#builtins for pair structures
+
+# builtins for pair structures
 def builtin_cons(*args):
     if len(args) != 2:
         raise SchemeEvaluationError("cons needs exactly 2 arguments")
     return Pair(args[0], args[1])
+
 
 def builtin_car(*args):
     if len(args) != 1:
@@ -414,6 +457,7 @@ def builtin_car(*args):
         raise SchemeEvaluationError("car expects a Pair")
     return cell.car
 
+
 def builtin_cdr(*args):
     if len(args) != 1:
         raise SchemeEvaluationError("cdr needs exactly 1 argument")
@@ -422,18 +466,21 @@ def builtin_cdr(*args):
         raise SchemeEvaluationError("cdr expects a Pair")
     return cell.cdr
 
-#builtins for list structures
+
+# builtins for list structures
 def builtin_list(*args):
     result = EMPTY_LIST
     for elem in reversed(args):
         result = Pair(elem, result)
     return result
 
+
 def builtin_listp(obj):
     # Proper list: Either EMPTY_LIST or a chain of Pair ending in EMPTY_LIST
     while isinstance(obj, Pair):
         obj = obj.cdr
     return obj is EMPTY_LIST
+
 
 def builtin_length(obj):
     if not builtin_listp(obj):
@@ -444,10 +491,11 @@ def builtin_length(obj):
         obj = obj.cdr
     return n
 
-def builtin_list_ref(lst, idx):
+
+def builtin_list_ref(input_list, idx):
     if not isinstance(idx, int) or idx < 0:
         raise SchemeEvaluationError("list-ref index must be nonnegative")
-    cell = lst
+    cell = input_list
     while idx > 0:
         if not isinstance(cell, Pair):
             raise SchemeEvaluationError("index too large")
@@ -457,24 +505,25 @@ def builtin_list_ref(lst, idx):
         raise SchemeEvaluationError("index too large")
     return cell.car
 
+
 def builtin_append(*lists):
     # append with zero args → ()
     if len(lists) == 0:
         return EMPTY_LIST
 
     # Validate all args are proper lists
-    for lst in lists:
-        if not builtin_listp(lst):
+    for input_list in lists:
+        if not builtin_listp(input_list):
             raise SchemeEvaluationError("append expects lists")
 
     # If exactly one list: return a *copy* of it
     if len(lists) == 1:
-        lst = lists[0]
+        input_list = lists[0]
         result = EMPTY_LIST
         items = []
-        while isinstance(lst, Pair):
-            items.append(lst.car)
-            lst = lst.cdr
+        while isinstance(input_list, Pair):
+            items.append(input_list.car)
+            input_list = input_list.cdr
         for x in reversed(items):
             result = Pair(x, result)
         return result
@@ -482,15 +531,16 @@ def builtin_append(*lists):
     # General append: copy all items except the last list
     result = EMPTY_LIST
     items = []
-    for lst in lists[:-1]:
-        while isinstance(lst, Pair):
-            items.append(lst.car)
-            lst = lst.cdr
+    for input_list in lists[:-1]:
+        while isinstance(input_list, Pair):
+            items.append(input_list.car)
+            input_list = input_list.cdr
     # Now append items from last list directly
     last = lists[-1]
     for x in reversed(items):
         last = Pair(x, last)
     return last
+
 
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
@@ -501,9 +551,9 @@ SCHEME_BUILTINS = {
     "lambda": "lambda",  # handled specially in evaluate
     "#t": True,
     "#f": False,
-    "if": "if",          # special form
-    "and": "and",        # special form
-    "or": "or",          # special form
+    "if": "if",  # special form
+    "and": "and",  # special form
+    "or": "or",  # special form
     "not": builtin_not,  # builtin function (can be overridden by define)
     "equal?": builtin_equal,
     ">": builtin_gt,
@@ -638,13 +688,16 @@ class Pair:
 
     def __repr__(self):
         return self.__str__()
-    
+
+
 class EmptyList:
     def __str__(self):
         return "()"
+
     def __repr__(self):
         return self.__str__()
-    
+
+
 EMPTY_LIST = EmptyList()
 # endregion
 # region                       REPL
@@ -667,7 +720,5 @@ if __name__ == "__main__":
 
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
-        SchemeREPL(
-            sys.modules[__name__], verbose=True, repl_frame=my_frame
-        ).cmdloop()
+        SchemeREPL(sys.modules[__name__], verbose=True, repl_frame=my_frame).cmdloop()
 # endregion
