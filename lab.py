@@ -170,6 +170,7 @@ def evaluate(tree, frame=None):
         # evaluate(['a', 1, 2]), should raise a SchemeNameError
         elif tree[0] not in SCHEME_BUILTINS and not frame.is_defined(tree[0]):
             raise SchemeNameError("Symbol not defined")
+        
         oper = evaluate(tree[0], frame)
 
         # specially handle conditionals
@@ -228,6 +229,17 @@ def evaluate(tree, frame=None):
             params = tree[1]
             body = tree[2]
             return Function(params, body, frame)
+        
+        elif oper == "begin":
+            args = tree[1:]
+
+            if len(args) == 0:
+                raise SchemeEvaluationError("begin requires at least one expression")
+
+            result = None
+            for expr in args:
+                result = evaluate(expr, frame)
+            return result
         
         args = [evaluate(arg, frame) for arg in tree[1:]]
         try:
@@ -422,6 +434,7 @@ SCHEME_BUILTINS = {
     "length": builtin_length,
     "list-ref": builtin_list_ref,
     "append": builtin_append,
+    "begin": "begin",
 }
 
 
