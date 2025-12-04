@@ -247,6 +247,20 @@ def evaluate(tree, frame=None):
         except TypeError:
             raise SchemeEvaluationError("Function cannot be completed with given args")
 
+def evaluate_file(filename, frame=None):
+    """
+    Reads a Scheme program from a file and evaluates it.
+    Assume that file contains a single expression.
+    """
+    if frame is None:
+        frame = make_initial_frame()
+
+    with open(filename, "r") as f:
+        contents = f.read()
+
+    tokens = tokenize(contents)
+    parsed = parse(tokens)
+    return evaluate(parsed, frame)
 
 # endregion
 ####################################################################
