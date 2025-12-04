@@ -541,6 +541,55 @@ def builtin_append(*lists):
         last = Pair(x, last)
     return last
 
+def builtin_map(fn, lst):
+    # map only works on if lst is a proper Scheme list
+    if not builtin_listp(lst):
+        raise SchemeEvaluationError("map expects a list")
+
+    # build result Python-style then convert to Scheme list
+    result_elems = []
+    while isinstance(lst, Pair):
+        result_elems.append(fn(lst.car))
+        lst = lst.cdr
+
+    # rebuild Scheme list
+    result = EMPTY_LIST
+    for x in reversed(result_elems):
+        result = Pair(x, result)
+    return result
+
+
+def builtin_filter(fn, lst):
+    if not builtin_listp(lst):
+        raise SchemeEvaluationError("filter expects a list")
+
+    result_elems = []
+    while isinstance(lst, Pair):
+        if fn(lst.car):
+            result_elems.append(lst.car)
+        lst = lst.cdr
+
+    result = EMPTY_LIST
+    for x in reversed(result_elems):
+        result = Pair(x, result)
+    return result
+
+
+def builtin_reduce(fn, lst, initial):
+    # equivalent to Scheme:
+    # (define (reduce fn lst val)
+    #   (if (null? lst)
+    #       val
+    #       (reduce fn (cdr lst) (fn val (car lst)))))
+    if not builtin_listp(lst):
+        raise SchemeEvaluationError("reduce expects a list")
+
+    acc = initial
+    while isinstance(lst, Pair):
+        acc = fn(acc, lst.car)
+        lst = lst.cdr
+    return acc
+
 
 SCHEME_BUILTINS = {
     "+": lambda *args: sum(args),
@@ -573,6 +622,9 @@ SCHEME_BUILTINS = {
     "del": "del",
     "let": "let",
     "set!": "set!",
+    "map": builtin_map,
+    "filter": builtin_filter,
+    "reduce": builtin_reduce,
 }
 
 
@@ -673,18 +725,21 @@ class Pair:
         self.car = car
         self.cdr = cdr
 
-    def pair_to_string(cell):
-        out = []
-        while isinstance(cell, Pair):
-            out.append(str(cell.car))
-            cell = cell.cdr
-        if cell is EMPTY_LIST:
-            return "(" + " ".join(out) + ")"
-        else:
-            return "(" + " ".join(out) + " . " + str(cell) + ")"
+    def pair_to_string(self):
+        """
+        Return the string representation of this Pair following Scheme list rules.
+        """
+        elems = []
+        current = self
+        while isinstance(current, Pair):
+            elems.append(str(current.car))
+            current = current.cdr
+        if current is not EMPTY_LIST:
+            elems.append(". " + str(current))
+        return "(" + " ".join(elems) + ")"
 
     def __str__(self):
-        return self.pair_to_string(self)
+        return self.pair_to_string()
 
     def __repr__(self):
         return self.__str__()
