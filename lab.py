@@ -275,7 +275,7 @@ def evaluate(tree, frame=None):
                 evaluated_bindings.append((name, val))
 
             # create new local frame
-            new_frame = Frame(parent=frame)
+            new_frame = Frame(parent_frame=frame)
 
             # bind evaluated values
             for name, val in evaluated_bindings:
