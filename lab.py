@@ -586,10 +586,14 @@ if __name__ == "__main__":
         # doctest.testmod(optionflags=_doctest_flags)  # runs ALL doctests
 
     if run_repl:
-        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        SchemeREPL(
-            sys.modules[__name__], verbose=True, repl_frame=make_initial_frame()
-        ).cmdloop()
+        my_frame = make_initial_frame()
 
-    print(tokenize("(adam adam chris duane))"))
+        for filename in sys.argv[1:]:
+            evaluate_file(filename, my_frame)
+
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+        SchemeREPL(
+            sys.modules[__name__], verbose=True, repl_frame=my_frame
+        ).cmdloop()
 # endregion
