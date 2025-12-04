@@ -285,6 +285,9 @@ def builtin_mul(*args):
     first_num, *rest_nums = args
     return first_num * builtin_mul(*rest_nums)
 
+def is_null(x):
+    return x == EMPTY_LIST
+
 def compare_helper(args, relation):
     # relation is some function that takes two args and returns True/False
     # expects len(args) >= 2
@@ -449,6 +452,7 @@ SCHEME_BUILTINS = {
     "list-ref": builtin_list_ref,
     "append": builtin_append,
     "begin": "begin",
+    "null?": is_null,
 }
 
 
